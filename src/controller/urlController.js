@@ -4,22 +4,33 @@ const shortid = require("shortid");
 
 
 const validUrl = (value) => {
-    let Reg = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-]*)?\??(?:[-\+=&;%@.\w]*)#?(?:[\w]*))?)/
-    return Reg.test(value)
+    if (!(/(ftp|http|https|FTP|HTTP|HTTPS):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?/.test(value.trim()))) {
+        return false
+    }
+        return true
 }
+
+
 // createShortUrl...................................................................
 
 const shortenUrl = async (req, res) => {
 try {
     const baseUrl = "http://localhost:3000";
-
-    if (Object.entries(req.body).length == 0) {
+    
+    if (Object.entries(req.body).length == 0 || Object.entries(req.body).length > 1) {
         return res
         .status(400)
         .send({ status: false, Message: "Invalid Request Params" });
     }
 
+    if(!req.body.hasOwnProperty('longUrl')) {
+        return res.status(400).send({ Status: false, Message: "Wrong Key Present" })
+    }
     const { longUrl } = req.body;
+
+    if(!longUrl) {
+        return res.status(400).send({ Status : false, Message: "Url Is Required" })
+    }
 
     if (!validUrl(baseUrl)) {
         return res
@@ -31,23 +42,23 @@ try {
 
     if (!validUrl(longUrl)) {
         return res
-            .status(400)
-            .send({ status: false, Message: "Invalid Long Url" });
+        .status(400)
+        .send({ status: false, Message: "Invalid Long Url" });
     }
 
     let isUrlExist = await urlModel.findOne({ longUrl }).select({longUrl : 1, urlCode : 1, shortUrl: 1, _id: 0});
     if (isUrlExist) {
         return res
-        .status(200)
+        .status(201)
         .send({ status: true, Message: "Success", Data: isUrlExist });
     }
 
     const shortUrl = baseUrl + "/" + urlCode;
     shortUrl.toLowerCase();
-    
+
     const urlData = {
         longUrl,
-        shortUrl,
+        shortUrl : shortUrl.trim(),
         urlCode,
     };
 
@@ -63,9 +74,9 @@ try {
     .send({ status: true, Message: "success", Data: finalData });
 
 } catch (error) {
-        res
-        .status(500)
-        .send({ status: false, Err: error.message });
+    res
+    .status(500)
+    .send({ status: false, Err: error.message });
 }
 };
 
