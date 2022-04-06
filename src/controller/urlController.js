@@ -26,7 +26,9 @@ try {
     if(!req.body.hasOwnProperty('longUrl')) {
         return res.status(400).send({ Status: false, Message: "Wrong Key Present" })
     }
+    
     const { longUrl } = req.body;
+    //wih The help of Object distucturing we can store the Ojects proporties in a Distinct Variable
 
     if(!longUrl) {
         return res.status(400).send({ Status : false, Message: "Url Is Required" })
@@ -37,8 +39,6 @@ try {
         .status(400)
         .send({ status: false, Message: "invalid Base Url" });
     }
-
-    const urlCode = shortid.generate().toLowerCase();
 
     if (!validUrl(longUrl)) {
         return res
@@ -52,7 +52,8 @@ try {
         .status(201)
         .send({ status: true, Message: "Success", Data: isUrlExist });
     }
-
+    
+    const urlCode = shortid.generate().toLowerCase();
     const shortUrl = baseUrl + "/" + urlCode;
     shortUrl.toLowerCase();
 
