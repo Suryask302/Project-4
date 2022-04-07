@@ -40,8 +40,12 @@ const validUrl = (value) => {
 
 const shortenUrl = async (req, res) => {
 try {
-    const baseUrl = "http://localhost:3000";
+    const baseUrl = "http://localhost:3000"
     
+    if(Object.keys(req.query).length > 0) {
+        return res.status(400).send({ Status: false, Message: "Invalid Request" })
+    }
+
     if (Object.entries(req.body).length == 0 || Object.entries(req.body).length > 1) {
         return res
         .status(400)
