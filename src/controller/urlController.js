@@ -2,6 +2,32 @@
 const urlModel = require("../model/urlModel");
 const shortid = require("shortid");
 
+// Redis ---------------------------------------------
+
+const redis = require("redis");
+const { promisify } = require("util");
+
+// Connecting to Redis -----------------------------------------------
+
+const redisClient = redis.createClient(
+    10348,
+  "redis-10348.c212.ap-south-1-1.ec2.cloud.redislabs.com",
+  { no_ready_check: true }
+);
+
+redisClient.auth("5X4rnU3Rd4HouhHr6eqxXNiqiSpiYX5v", (err) => {
+  if (err) throw err;
+});
+
+redisClient.on("connect", async () => {
+  console.log("Connected to Redis..");
+});
+
+//Connection setup for redis --------------------------------------------
+
+const SET_ASYNC = promisify(redisClient.SET).bind(redisClient);
+const GET_ASYNC = promisify(redisClient.GET).bind(redisClient);
+
 
 const validUrl = (value) => {
     if (!(/(ftp|http|https|FTP|HTTP|HTTPS):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-/]))?/.test(value.trim()))) {
@@ -9,7 +35,6 @@ const validUrl = (value) => {
     }
         return true
 }
-
 
 // createShortUrl...................................................................
 
@@ -46,8 +71,16 @@ try {
         .send({ status: false, Message: "Invalid Long Url" });
     }
 
+    let cachedData = await GET_ASYNC(`${longUrl}`)
+    if(cachedData) {
+        console.log("Comming From Redis....")
+        let changed = JSON.parse(cachedData)
+        return res.status(201).send({ status : true, Message:'Success', Data:changed })
+    }
     let isUrlExist = await urlModel.findOne({ longUrl }).select({longUrl : 1, urlCode : 1, shortUrl: 1, _id: 0});
+    
     if (isUrlExist) {
+        await SET_ASYNC(`${longUrl}`, JSON.stringify(isUrlExist))
         return res
         .status(201)
         .send({ status: true, Message: "Success", Data: isUrlExist });
@@ -88,15 +121,26 @@ module.exports.shortenUrl = shortenUrl;
 const getUrl = async (req, res) => {
 try {
     const urlC = req.params.urlCode.trim();
+
+    let cachedData = await GET_ASYNC(`${urlC}`)
+    if(cachedData) {
+
+        console.log("Comming From Redis....")
+        let changed = JSON.parse(cachedData)
+        return res.status(302).redirect(changed.longUrl)
+        
+    }
     const isUrlExist = await urlModel.findOne({ urlCode: urlC });
 
     if (isUrlExist) {
+        
         if (urlC !== isUrlExist.urlCode) {
         return res
         .status(404)
         .send({ status: false, Message: "No Url Found, Please Check Url Code", });
         }
-        return res.redirect(isUrlExist.longUrl);
+        await SET_ASYNC(`${urlC}`, JSON.stringify(isUrlExist))
+        return res.status(302).redirect(isUrlExist.longUrl);
     }
 
 } catch (error) {
