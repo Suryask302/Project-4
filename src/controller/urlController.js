@@ -56,19 +56,15 @@ try {
         return res.status(400).send({ Status: false, Message: "Wrong Key Present" })
     }
     
-    const { longUrl } = req.body;
+    let { longUrl } = req.body;
     //wih The help of Object distucturing we can store the Ojects proporties in a Distinct Variable
 
-    if(!longUrl) {
+    if(!longUrl || typeof longUrl != 'string') {
         return res.status(400).send({ Status : false, Message: "Url Is Required" })
     }
-
-    if (!validUrl(baseUrl)) {
-        return res
-        .status(400)
-        .send({ status: false, Message: "invalid Base Url" });
-    }
-
+    
+    longUrl = longUrl.trim()
+    
     if (!validUrl(longUrl)) {
         return res
         .status(400)
@@ -83,6 +79,12 @@ try {
     }
     let isUrlExist = await urlModel.findOne({ longUrl }).select({longUrl : 1, urlCode : 1, shortUrl: 1, _id: 0});
     
+    if (!validUrl(baseUrl)) {
+        return res
+        .status(400)
+        .send({ status: false, Message: "invalid Base Url" });
+    }
+
     if (isUrlExist) {
         await SET_ASYNC(`${longUrl}`, JSON.stringify(isUrlExist))
         return res
@@ -95,21 +97,16 @@ try {
     
 
     const urlData = {
-        longUrl,
+        longUrl : longUrl,
         shortUrl : shortUrl.trim(),
         urlCode,
     };
 
-    let newUrl = await urlModel.create(urlData)
+    await urlModel.create(urlData)
 
-    let finalData = {
-        urlCode : newUrl.urlCode,
-        longUrl : newUrl.longUrl,
-        shortUrl: newUrl.shortUrl
-    }
     return res
     .status(201)
-    .send({ status: true, Message: "success", Data: finalData });
+    .send({ status: true, Message: "success", Data: urlData });
 
 } catch (error) {
     res
