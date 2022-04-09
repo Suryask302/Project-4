@@ -92,7 +92,7 @@ try {
     
     const urlCode = shortid.generate().toLowerCase();
     const shortUrl = baseUrl + "/" + urlCode;
-    shortUrl.toLowerCase();
+    
 
     const urlData = {
         longUrl,
@@ -146,6 +146,8 @@ try {
         await SET_ASYNC(`${urlC}`, JSON.stringify(isUrlExist))
         return res.status(302).redirect(isUrlExist.longUrl);
     }
+    return res.status(404).send({ status: false, message: 'Not found please check url code' })
+    
 
 } catch (error) {
     res.status(500).send({ status: false, Message: error.message });
